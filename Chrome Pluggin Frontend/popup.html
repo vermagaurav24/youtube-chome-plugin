@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>YouTube Comment Analyzer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    /* Modern Dark Theme with Variables */
+    :root {
+      --bg-color: #121212;
+      --text-color: #f1f1f1;
+      --accent-color: #4da6ff;
+      --section-bg: #252525;
+      --metric-bg: #333;
+      --hover-bg: #3a3a3a;
+      --shadow: rgba(0, 0, 0, 0.3);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--bg-color) 0%, #1e1e1e 100%);
+      color: var(--text-color);
+      margin: 0;
+      box-sizing: border-box;
+      width: 320px;
+      min-height: 400px;
+      overflow-y: auto;
+    }
+    h1 {
+      font-size: 22px;
+      color: var(--text-color);
+      margin: 0 0 16px;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+    .section {
+      margin-bottom: 20px;
+      background: var(--section-bg);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 8px var(--shadow);
+      transition: box-shadow 0.2s ease, opacity 0.5s ease;
+      opacity: 0;
+      animation: fadeIn 0.5s ease-in forwards;
+    }
+    .section:hover {
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    .section-title {
+      font-weight: 600;
+      color: var(--accent-color);
+      margin: 0 0 8px;
+      font-size: 16px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 4px;
+      display: flex;
+      align-items: center;
+    }
+    .comment-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .comment-item {
+      margin: 8px 0;
+      padding: 12px;
+      background: var(--metric-bg);
+      border-radius: 6px;
+      transition: transform 0.1s ease, background 0.2s ease;
+    }
+    .comment-item:hover {
+      transform: translateY(-2px);
+      background: var(--hover-bg);
+    }
+    .comment-sentiment {
+      font-weight: bold;
+      font-size: 14px;
+      display: block;
+      margin-top: 4px;
+    }
+    .comment-sentiment[data-sentiment="1"] { color: #4caf50; } /* Positive */
+    .comment-sentiment[data-sentiment="0"] { color: #ffeb3b; } /* Neutral */
+    .comment-sentiment[data-sentiment="-1"] { color: #ff5252; } /* Negative */
+    /* Image Styling */
+    img {
+      width: 100%;
+      margin-top: 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px var(--shadow);
+      loading: lazy;
+    }
+    #chart-container, #wordcloud-container, #trend-graph-container {
+      min-height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a1a;
+      border-radius: 6px;
+    }
+    .loading::before {
+      content: 'Loading...';
+      color: #bbbbbb;
+      font-size: 14px;
+    }
+    /* Metrics Styling */
+    .metrics-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .metric {
+      flex: 1 1 48%;
+      background: var(--metric-bg);
+      margin-bottom: 8px;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+      box-sizing: border-box;
+      transition: background 0.2s ease;
+    }
+    .metric:hover {
+      background: var(--hover-bg);
+    }
+    .metric-title {
+      font-size: 13px;
+      color: #bbbbbb;
+      margin-bottom: 4px;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+    /* General Text */
+    p {
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 8px 0;
+      color: #dddddd;
+    }
+    /* Accessibility */
+    :focus {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+    summary {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    summary::marker {
+      color: var(--accent-color);
+    }
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Responsiveness */
+    @media (max-width: 300px) {
+      .metrics-container {
+        flex-direction: column;
+        gap: 12px;
+      }
+      .metric {
+        flex: 1 1 100%;
+      }
+    }
+    /* Optional Light Theme */
+    [data-theme="light"] {
+      --bg-color: #ffffff;
+      --text-color: #121212;
+      --accent-color: #007bff;
+      --section-bg: #f5f5f5;
+      --metric-bg: #e0e0e0;
+      --hover-bg: #d0d0d0;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+    /* Filter Styles */
+    .filter-container {
+      margin-bottom: 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .filter-input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: #f1f1f1;
+    }
+    .filter-select {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: #f1f1f1;
+    }
+    /* Modal Styles */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 1000; /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%; /* Full width */
+      height: 100%; /* Full height */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgba(0, 0, 0, 0.9); /* Black overlay with opacity */
+      padding-top: 50px; /* Space for close button */
+    }
+    .modal-content {
+      margin: auto;
+      display: block;
+      width: 80%; /* Larger size */
+      max-width: 700px; /* Cap for very wide popups */
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 25px;
+      color: #f1f1f1;
+      font-size: 35px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .modal-close:hover {
+      color: #bbb;
+    }
+    /* Optional: Fade-in animation for modal */
+    .modal-content {
+      animation: zoom 0.3s;
+    }
+    @keyframes zoom {
+      from { transform: scale(0.1); }
+      to { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <h1>YouTube Comment Analyzer</h1>
+  <!-- Optional Theme Toggle Button -->
+  <button id="theme-toggle" style="margin-bottom: 16px; padding: 8px 12px; background: var(--metric-bg); color: var(--text-color); border: none; border-radius: 4px; cursor: pointer;">Toggle Theme</button>
+  <div id="output" class="section" aria-live="polite"></div>
+  <!-- Modal for Enlarging Images -->
+  <div id="image-modal" class="modal" style="display: none;">
+    <span id="modal-close" class="modal-close">&times;</span>
+    <img id="modal-image" class="modal-content" src="">
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
